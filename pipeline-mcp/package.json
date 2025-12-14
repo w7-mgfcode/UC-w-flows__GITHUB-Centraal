@@ -1,0 +1,30 @@
+{
+  "name": "pipeline-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Custom MCP server for coordinating GitHub Actions workflows.",
+  "author": "Gabor Szabo <gabor@w7-7.net> (https://w7-7.net)",
+  "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "octokit": "^4.0.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "nock": "^14.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.5"
+  }
+}

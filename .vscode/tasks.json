@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "pipeline-mcp: install",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/pipeline-mcp"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "pipeline-mcp: typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "options": {
+        "cwd": "${workspaceFolder}/pipeline-mcp"
+      },
+      "dependsOn": ["pipeline-mcp: install"],
+      "problemMatcher": []
+    },
+    {
+      "label": "pipeline-mcp: test",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/pipeline-mcp"
+      },
+      "dependsOn": ["pipeline-mcp: install"],
+      "problemMatcher": []
+    },
+    {
+      "label": "pipeline-mcp: build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/pipeline-mcp"
+      },
+      "dependsOn": ["pipeline-mcp: install"],
+      "problemMatcher": []
+    },
+    {
+      "label": "pipeline-mcp: docker build",
+      "type": "shell",
+      "command": "docker build -t pipeline-mcp:local .",
+      "options": {
+        "cwd": "${workspaceFolder}/pipeline-mcp"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

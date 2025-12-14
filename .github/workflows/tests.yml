@@ -1,0 +1,122 @@
+name: Tests & Validation
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-python:
+    if: ${{ hashFiles('requirements.txt') != '' || hashFiles('pyproject.toml') != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f pyproject.toml ]; then pip install .; fi
+          pip install pytest pytest-cov pylint black
+
+      - name: Lint with pylint
+        run: |
+          if [ -d src ]; then pylint src/ --exit-zero --output-format=parseable; else echo "No src/ directory; skipping pylint."; fi
+        continue-on-error: true
+
+      - name: Format check with black
+        run: |
+          if [ -d src ]; then black --check src/; else echo "No src/ directory; skipping black check."; fi
+        continue-on-error: true
+
+      - name: Run tests with pytest
+        run: |
+          if [ -d tests ]; then pytest tests/ -v --cov=src --cov-report=xml --cov-report=html; else echo "No tests/ directory; skipping pytest."; fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  test-javascript:
+    if: ${{ hashFiles('package.json') != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (npm ci)
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        run: npm ci
+
+      - name: Install dependencies (npm install)
+        if: ${{ hashFiles('package-lock.json') == '' }}
+        run: npm install
+
+      - name: Lint with ESLint
+        run: |
+          npx eslint . --ext .js,.jsx,.ts,.tsx
+        continue-on-error: true
+
+      - name: Run tests with Jest
+        run: npm test -- --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+
+  test-pipeline-mcp:
+    if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: |
+            pipeline-mcp/package-lock.json
+            pipeline-mcp/package.json
+
+      - name: Install dependencies
+        working-directory: pipeline-mcp
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Typecheck
+        working-directory: pipeline-mcp
+        run: npm run typecheck
+
+      - name: Run unit tests
+        working-directory: pipeline-mcp
+        run: npm test

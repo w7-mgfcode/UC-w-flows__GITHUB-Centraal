@@ -1,0 +1,10 @@
+services:
+  pipeline-mcp:
+    build: .
+    image: pipeline-mcp:local
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      GITHUB_REPO: ${GITHUB_REPO}
+    stdin_open: true
+    tty: true

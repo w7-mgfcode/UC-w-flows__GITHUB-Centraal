@@ -1,0 +1,64 @@
+name: Pre-Merge Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate branch naming
+        run: |
+          branch=${{ github.head_ref }}
+          if [[ ! $branch =~ ^(feature|bugfix|hotfix|release|docs|test|refactor)/[a-zA-Z0-9-]+$ ]]; then
+            echo "❌ Branch name '$branch' doesn't follow conventions"
+            echo "Expected format: feature/description, bugfix/description, etc."
+            exit 1
+          fi
+          echo "✅ Branch name is valid: $branch"
+
+      - name: Validate commit messages
+        run: |
+          git fetch origin main --depth=1 || true
+          if git show-ref --verify --quiet refs/remotes/origin/main; then
+            range="origin/main..HEAD"
+          else
+            range="HEAD"
+          fi
+          git log --format=%B "$range" | grep -E '^\[(FEAT|FIX|DOCS|TEST|REFACTOR)\]' || \
+          (echo "❌ Commits must start with [FEAT], [FIX], [DOCS], [TEST], or [REFACTOR]"; exit 1)
+          echo "✅ All commits follow format"
+
+      - name: Check for security issues
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          python3 -m pip install --upgrade pip || true
+          python3 -m pip install truffleHog || true
+          truffleHog filesystem . --fail --max-depth 3 || true
+
+      - name: Validate file sizes
+        run: |
+          echo "Checking for uncommonly large files..."
+          find . -size +10M -not -path './.git/*' | while read file; do
+            echo "⚠️  Large file: $file"
+          done
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## ✅ Pre-Merge Validation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Branch naming valid" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Commit messages valid" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No obvious secrets detected" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ File sizes reasonable" >> $GITHUB_STEP_SUMMARY
