@@ -8,7 +8,6 @@ on:
 
 jobs:
   test-python:
-    if: ${{ hashFiles('requirements.txt') != '' || hashFiles('pyproject.toml') != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -17,12 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect Python project
+        id: detect
+        run: |
+          if [ -f requirements.txt ] || [ -f pyproject.toml ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip (no Python project)
+        if: ${{ steps.detect.outputs.enabled != 'true' }}
+        run: echo "No requirements.txt or pyproject.toml; skipping Python job."
+
       - name: Set up Python ${{ matrix.python-version }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -30,20 +44,24 @@ jobs:
           pip install pytest pytest-cov pylint black
 
       - name: Lint with pylint
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: |
           if [ -d src ]; then pylint src/ --exit-zero --output-format=parseable; else echo "No src/ directory; skipping pylint."; fi
         continue-on-error: true
 
       - name: Format check with black
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: |
           if [ -d src ]; then black --check src/; else echo "No src/ directory; skipping black check."; fi
         continue-on-error: true
 
       - name: Run tests with pytest
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: |
           if [ -d tests ]; then pytest tests/ -v --cov=src --cov-report=xml --cov-report=html; else echo "No tests/ directory; skipping pytest."; fi
 
       - name: Upload coverage to Codecov
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -52,7 +70,6 @@ jobs:
           fail_ci_if_error: false
 
   test-javascript:
-    if: ${{ hashFiles('package.json') != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -61,36 +78,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect JavaScript project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip (no JavaScript project)
+        if: ${{ steps.detect.outputs.enabled != 'true' }}
+        run: echo "No package.json; skipping JavaScript job."
+
       - name: Set up Node.js ${{ matrix.node-version }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install dependencies (npm ci)
-        if: ${{ hashFiles('package-lock.json') != '' }}
-        run: npm ci
-
-      - name: Install dependencies (npm install)
-        if: ${{ hashFiles('package-lock.json') == '' }}
-        run: npm install
+      - name: Install dependencies
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: Lint with ESLint
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: |
           npx eslint . --ext .js,.jsx,.ts,.tsx
         continue-on-error: true
 
       - name: Run tests with Jest
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         run: npm test -- --coverage
 
       - name: Upload coverage
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage/coverage-final.json
           fail_ci_if_error: false
 
   test-pipeline-mcp:
-    if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -99,7 +129,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect pipeline-mcp
+        id: detect
+        run: |
+          if [ -f pipeline-mcp/package.json ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip (no pipeline-mcp)
+        if: ${{ steps.detect.outputs.enabled != 'true' }}
+        run: echo "No pipeline-mcp/package.json; skipping pipeline-mcp job."
+
       - name: Set up Node.js ${{ matrix.node-version }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -109,14 +153,17 @@ jobs:
             pipeline-mcp/package.json
 
       - name: Install dependencies
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: Typecheck
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: npm run typecheck
 
       - name: Run unit tests
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: npm test
