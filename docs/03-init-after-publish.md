@@ -26,6 +26,10 @@ Enable:
   - Require at least:
     - `Pre-Merge Validation`
     - `Tests & Validation`
+  - Note: GitHub’s “required status checks” list typically shows **job/check names**, not just workflow names.
+    - Example: the validation workflow usually appears as `validate`.
+    - Matrix jobs appear per entry, e.g. `test-pipeline-mcp (18)`, `test-pipeline-mcp (20)`, `test-pipeline-mcp (22)`.
+    - Policy choice: require all matrix entries (stricter) or a single representative entry (lighter).
 - Require conversation resolution before merging (recommended)
 - Require linear history (recommended)
 
