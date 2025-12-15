@@ -106,6 +106,6 @@ describe('pipeline-mcp (stdio integration)', () => {
         );
       }
     },
-    { timeout: 15000 }
+    15000
   );
 });

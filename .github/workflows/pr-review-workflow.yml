@@ -70,8 +70,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect pipeline-mcp
+        id: detect
+        run: |
+          if [ -f pipeline-mcp/package.json ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Node.js
-        if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -81,23 +90,23 @@ jobs:
             pipeline-mcp/package.json
 
       - name: pipeline-mcp install
-        if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: pipeline-mcp typecheck
-        if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: npm run typecheck
 
       - name: pipeline-mcp tests
-        if: ${{ hashFiles('pipeline-mcp/package.json') != '' }}
+        if: ${{ steps.detect.outputs.enabled == 'true' }}
         working-directory: pipeline-mcp
         run: npm test
 
       - name: No project tests found
-        if: ${{ hashFiles('pipeline-mcp/package.json') == '' }}
+        if: ${{ steps.detect.outputs.enabled != 'true' }}
         run: echo "No pipeline-mcp package present; skipping tests."
 
   coderabbit-review:

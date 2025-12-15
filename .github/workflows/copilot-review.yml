@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   coderabbit-review:
+    if: ${{ secrets.OPENAI_API_KEY != '' }}
     runs-on: ubuntu-latest
     name: CodeRabbit Review
     steps:
@@ -38,6 +39,7 @@ jobs:
           max_files_to_summarize: 20
 
   sourcery-review:
+    if: ${{ secrets.SOURCERY_TOKEN != '' }}
     runs-on: ubuntu-latest
     name: Sourcery Code Quality Review
     steps:
